@@ -18,7 +18,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import NoSuchElementException
 
-DELAY_TIME = 2
+DELAY_TIME = 1
 WHILE_TRIAL = 10
 PROGRESS_DIR = '/home/ubuntu/progress/sivillage_progress.txt'
 RESULT_DIR = '/home/ubuntu/result/sivillage_result.txt'
@@ -127,6 +127,8 @@ class JobsSpider(scrapy.Spider):
 
                     # scrape page
                     name = self.sel.xpath('//*[@id="content"]/div[1]/div[2]/div[1]/div[4]/text()').extract_first().strip()
+                    if name is None:
+                        name = ''
                     prod_num = self.sel.xpath('//*[@id="content"]/div[1]/div[2]/div[1]/div[2]/text()').extract_first().strip()
                     if prod_num in self.progress:
                         self.driver.get(curr_url)
