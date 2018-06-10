@@ -21,7 +21,7 @@ from selenium.common.exceptions import NoSuchElementException
 DELAY_TIME = 2
 WHILE_TRIAL = 10
 PROGRESS_DIR = '/home/ubuntu/progress/sivillage_progress.txt'
-RESULT_DIR = '/home/ubuntu/progress/sivillage_result.txt'
+RESULT_DIR = '/home/ubuntu/result/sivillage_result.txt'
 CHROME_DRIVER = '/usr/local/bin/chromedriver'
 
 def __delay_time__():
@@ -88,8 +88,6 @@ class JobsSpider(scrapy.Spider):
             cat_list[ci] = c.strip()
 
         for catidx, category in enumerate(cat_list):
-            if category != '셔츠':
-                continue
             xpath = '//*[@id="leftMenu"]/div/div/div/ul/li[{}]/a'.format(str(catidx+1))
 
             # click category
