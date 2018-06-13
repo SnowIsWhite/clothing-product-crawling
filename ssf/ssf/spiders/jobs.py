@@ -23,8 +23,8 @@ WHILE_TRIAL = 10
 # PROGRESS_DIR = './ssf_progress.txt'
 # RESULT_DIR = './ssf_result.txt'
 # CHROME_DRIVER = '/Users/jaeickbae/Documents/projects/Web_Crawl/selenium_drivers/chromedriver'
-PROGRESS_DIR = '/home/ubuntu/progress/ssf_progress.txt'
-RESULT_DIR = '/home/ubuntu/result/ssf_result.txt'
+PROGRESS_DIR = '/home/ubuntu/projects/crawling/progress/ssf_progress.txt'
+RESULT_DIR = '/home/ubuntu/projects/crawling/result/ssf_result.txt'
 CHROME_DRIVER = '/usr/local/bin/chromedriver'
 
 def __delay_time__():
@@ -52,7 +52,7 @@ def __read_progress__():
 
 def __record_data__(url, cat, brand, name, price, prod_num, prod_desc, color):
     dat = {'url': url, 'category': cat, 'brand': brand, 'name': name, 'price': price, \
-    'prod_num': prod_num, 'prod_desc': 'prod_desc', 'color': color}
+    'prod_num': prod_num, 'prod_desc': prod_desc, 'color': color}
 
     with open(RESULT_DIR, 'a') as f:
         f.write(str(dat)+'\n')
@@ -73,6 +73,7 @@ class JobsSpider(scrapy.Spider):
         print("Waiting for a webdriver...\n")
         self.driver.implicitly_wait(3)
         self.progress = __read_progress__()
+        self.driver.set_page_load_timeout(600)
 
     def __scroll_element_into_view__(self, element):
         """Scroll element into view"""
@@ -89,7 +90,7 @@ class JobsSpider(scrapy.Spider):
         cat_list = self.sel.xpath('/html/body/div[3]/nav/ul[1]/li[2]/ul/li/a/text()').extract()
 
         for catidx, category in enumerate(cat_list):
-            if catidx == 0:
+            if catidx < 9:
                 # skip 'All'
                 continue
             # click category
@@ -120,7 +121,18 @@ class JobsSpider(scrapy.Spider):
                     if prod_num in self.progress:
                         continue
                     url = "http://www.ssfshop.com/{}/{}/good?dspCtgryNo=&brandShopNo=&brndShopId=".format(brand, prod_num)
-                    self.driver.get(url)
+                    print('\n\n\n\n{}\n\n\n\n'.format(url))
+                    while True:
+                        try:
+                            self.driver.get(url)
+                            break
+                        except TimeoutException:
+                            print(curr_url)
+                            try:
+                                self.driver.get(curr_url)
+                                break
+                            except TimeoutException:
+                                continue
                     __delay_time__()
                     self.sel = scrapy.Selector(text = self.driver.page_source)
 
@@ -184,7 +196,7 @@ class JobsSpider(scrapy.Spider):
                             self.sel = scrapy.Selector(text = self.driver.page_source)
                             curr_item = self.sel.xpath('//div[@id="pagingArea"]/a/text()').extract_first()
                             if prev_page_item != curr_item:
-                                print("\n\nNEXT BUTTON CLICKED: page now {}\n\n".format(str(curr_page_num+1)))
+                                print("\n\n\n\n\nNEXT BUTTON CLICKED: page now {}\n\n".format(str(curr_page_num+1)))
                                 curr_page_num += 1
                                 break
                     else:
@@ -206,6 +218,6 @@ class JobsSpider(scrapy.Spider):
                         self.sel = scrapy.Selector(text = self.driver.page_source)
                         curr_item = self.sel.xpath('//*[@id="dspGood"]/li[1]/a/img/@src').extract_first()
                         if prev_page_item != curr_item:
-                            print("\n\nNEXT PAGE CLICKED: page now {}\n\n".format(str(next_page_num)))
+                            print("\n\n\n\n\nNEXT PAGE CLICKED: page now {}\n\n".format(str(next_page_num)))
                             curr_page_num += 1
                             break

@@ -20,8 +20,8 @@ from selenium.common.exceptions import NoSuchElementException
 
 DELAY_TIME = 1
 WHILE_TRIAL = 10
-PROGRESS_DIR = '/home/ubuntu/progress/sivillage_progress.txt'
-RESULT_DIR = '/home/ubuntu/result/sivillage_result.txt'
+PROGRESS_DIR = '/home/ubuntu/projects/crawling/progress/sivillage_progress.txt'
+RESULT_DIR = '/home/ubuntu/projects/crawling/result/sivillage_result.txt'
 CHROME_DRIVER = '/usr/local/bin/chromedriver'
 
 def __delay_time__():
@@ -88,6 +88,8 @@ class JobsSpider(scrapy.Spider):
             cat_list[ci] = c.strip()
 
         for catidx, category in enumerate(cat_list):
+            if catidx < 1:
+                continue
             xpath = '//*[@id="leftMenu"]/div/div/div/ul/li[{}]/a'.format(str(catidx+1))
 
             # click category
@@ -116,6 +118,11 @@ class JobsSpider(scrapy.Spider):
                     script_res = self.sel.xpath(xpath).extract_first()
                     script_res = script_res.split("'")
                     productNo = script_res[1]
+                    if productNo in self.progress:
+                        self.driver.get(curr_url)
+                        __delay_time__()
+                        self.sel = scrapy.Selector(text = self.driver.page_source)
+                        continue
                     infwPathTp = script_res[3]
                     infwPathNo = script_res[5]
                     brand = self.sel.xpath('//*[@id="productListDiv"]/div/div/ul/li[{}]/div[2]/div[1]/span/text()'.format(str(li_idx+1))).extract_first()
@@ -126,10 +133,16 @@ class JobsSpider(scrapy.Spider):
                     self.sel = scrapy.Selector(text = self.driver.page_source)
 
                     # scrape page
-                    name = self.sel.xpath('//*[@id="content"]/div[1]/div[2]/div[1]/div[4]/text()').extract_first().strip()
+                    name = self.sel.xpath('//*[@id="content"]/div[1]/div[2]/div[1]/div[4]/text()').extract_first()
                     if name is None:
-                        name = ''
+                        self.driver.get(curr_url)
+                        __delay_time__()
+                        self.sel = scrapy.Selector(text = self.driver.page_source)
+                        continue
+                    else:
+                        name = name.strip()
                     prod_num = self.sel.xpath('//*[@id="content"]/div[1]/div[2]/div[1]/div[2]/text()').extract_first().strip()
+                    print('\n\n\n\n\n{}\n\n\n\n\n'.format(prod_num))
                     if prod_num in self.progress:
                         self.driver.get(curr_url)
                         __delay_time__()
@@ -171,7 +184,7 @@ class JobsSpider(scrapy.Spider):
                         color[c]['img_url'] = imgs
 
                     # write progress
-                    __record_progress__(prod_num)
+                    __record_progress__(productNo)
                     # write data
                     __record_data__(url, category, brand, name, price, prod_num, prod_desc, color)
                     # go back to main page
