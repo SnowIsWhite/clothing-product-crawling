@@ -53,7 +53,7 @@ def __read_progress__():
 
 def __record_data__(url, cat, brand, name, price, prod_num, prod_desc, color):
     dat = {'url': url, 'category': cat, 'brand': brand, 'name': name, 'price': price, \
-    'prod_num': prod_num, 'prod_desc': 'prod_desc', 'color': color}
+    'prod_num': prod_num, 'prod_desc': prod_desc, 'color': color}
 
     with open(RESULT_DIR, 'a') as f:
         f.write(str(dat)+'\n')
@@ -136,10 +136,13 @@ class JobsSpider(scrapy.Spider):
                         brand = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
                         name = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
                         prod_num = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
+                        if prod_num is None:
+                            prod_num = ''
                         price = self.sel.xpath('//span[@class="price"]/text()').extract_first()
                         prod_desc = self.sel.xpath('//p[@class="vspace1 product-description-text"]/span/text()').extract()
                         prod_desc = ' '.join(prod_desc)
-
+                        prod_desc = prod_desc.replace("'", "")
+                        prod_desc = prod_desc.replace('"', '')
                         color = {}
                         c = ''
                         imgs = self.sel.xpath('//div[@class="product-images-container"]/div/div/div').extract()
@@ -163,9 +166,16 @@ class JobsSpider(scrapy.Spider):
                             # rel prod page
                             rel_result['rel_brand'] = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
                             rel_result['rel_name'] = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
-                            rel_result['rel_prod_num'] = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
+                            rel_prod_num = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
+                            if rel_prod_num is None:
+                                rel_prod_num = ''
+                            rel_result['rel_prod_num'] = rel_prod_num
                             rel_prod_desc = self.sel.xpath('//p[@class="vspace1 product-description-text"]/span/text()').extract()
-                            rel_result['rel_prod_desc'] = ' '.join(rel_prod_desc)
+                            rel_prod_desc = ' '.join(rel_prod_desc)
+                            rel_prod_desc = rel_prod_desc.replace('"', '')
+                            rel_prod_desc = rel_prod_desc.replace("'", "")
+                            rel_result['rel_prod_desc'] = rel_prod_desc
+                            
                             color[c]['rel'].append(rel_result)
 
                         # write progress
