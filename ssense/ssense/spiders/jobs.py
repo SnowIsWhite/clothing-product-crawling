@@ -133,11 +133,14 @@ class JobsSpider(scrapy.Spider):
                         self.sel = scrapy.Selector(text = self.driver.page_source)
 
                         # prod page
-                        brand = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
-                        name = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
                         prod_num = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
                         if prod_num is None:
                             prod_num = ''
+                        if prod_num in self.progress:
+                            print("\n\nProduct already in progress\n\n")
+                            continue
+                        brand = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
+                        name = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
                         price = self.sel.xpath('//span[@class="price"]/text()').extract_first()
                         prod_desc = self.sel.xpath('//p[@class="vspace1 product-description-text"]/span/text()').extract()
                         prod_desc = ' '.join(prod_desc)
@@ -175,7 +178,7 @@ class JobsSpider(scrapy.Spider):
                             rel_prod_desc = rel_prod_desc.replace('"', '')
                             rel_prod_desc = rel_prod_desc.replace("'", "")
                             rel_result['rel_prod_desc'] = rel_prod_desc
-                            
+
                             color[c]['rel'].append(rel_result)
 
                         # write progress
