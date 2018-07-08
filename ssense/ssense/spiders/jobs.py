@@ -37,10 +37,10 @@ def __get_curr_time__():
     return strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 # write progress
-def __record_progress__(prod_num):
+def __record_progress__(url):
     print("\n\nWrite progress\n\n")
     with open(PROGRESS_DIR, 'a') as f:
-        f.write(prod_num)
+        f.write(url)
         f.write('\n')
 
 def __read_progress__():
@@ -128,6 +128,9 @@ class JobsSpider(scrapy.Spider):
                     main_prod_page_url = self.driver.current_url
                     for prod in prod_list:
                         url = urljoin('https://www.ssense.com/', prod)
+                        if url in self.progress:
+                            print("\n\nProduct already in progress {}\n\n".format(url))
+                            continue
                         self.driver.get(url)
                         __delay_time__()
                         self.sel = scrapy.Selector(text = self.driver.page_source)
@@ -136,9 +139,6 @@ class JobsSpider(scrapy.Spider):
                         prod_num = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
                         if prod_num is None:
                             prod_num = ''
-                        if prod_num in self.progress:
-                            print("\n\nProduct already in progress\n\n")
-                            continue
                         brand = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
                         name = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
                         price = self.sel.xpath('//span[@class="price"]/text()').extract_first()
@@ -182,7 +182,7 @@ class JobsSpider(scrapy.Spider):
                             color[c]['rel'].append(rel_result)
 
                         # write progress
-                        __record_progress__(prod_num)
+                        __record_progress__(url)
                         # write data
                         __record_data__(url, cat, brand, name, price, prod_num, prod_desc, color)
 
