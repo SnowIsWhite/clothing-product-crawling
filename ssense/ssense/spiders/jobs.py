@@ -108,6 +108,9 @@ class JobsSpider(scrapy.Spider):
             cat_list = [cat.strip() for cat in cat_list]
 
             for catidx, cat in enumerate(cat_list):
+                if catidx == 0:
+                    # jacket is done
+                    continue
                 try:
                     actions = chains(self.driver)
                     xpath = '//*[@id="category-list"]/li[{}]/ul/li[{}]/a'.format(target_idx, str(catidx+1))
@@ -158,28 +161,30 @@ class JobsSpider(scrapy.Spider):
                         color[c] = {'img_url': imgs, 'size': size, 'rel': []}
 
                         # rel page
-                        rels = self.sel.xpath('//div[@class="related-product-container tab-container"]/div[2]/div/div/div/div/a/@href').extract()
-                        for rel_url in rels:
-                            rel_result = {}
-                            rel_url = urljoin('https://www.ssense.com/', rel_url)
-                            self.driver.get(rel_url)
-                            __delay_time__()
-                            self.sel = scrapy.Selector(text = self.driver.page_source)
+                        indicator = self.sel.xpath('//div[@class="related-product-tab inline-block smartphone-portrait-narrow-full-width"]/a/span[1]/text()').extract_first()
+                        if indicator == 'Styled with':
+                            rels = self.sel.xpath('//div[@class="related-product-container tab-container"]/div[2]/div/div/div/div/a/@href').extract()
+                            for rel_url in rels:
+                                rel_result = {}
+                                rel_url = urljoin('https://www.ssense.com/', rel_url)
+                                self.driver.get(rel_url)
+                                __delay_time__()
+                                self.sel = scrapy.Selector(text = self.driver.page_source)
 
-                            # rel prod page
-                            rel_result['rel_brand'] = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
-                            rel_result['rel_name'] = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
-                            rel_prod_num = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
-                            if rel_prod_num is None:
-                                rel_prod_num = ''
-                            rel_result['rel_prod_num'] = rel_prod_num
-                            rel_prod_desc = self.sel.xpath('//p[@class="vspace1 product-description-text"]/span/text()').extract()
-                            rel_prod_desc = ' '.join(rel_prod_desc)
-                            rel_prod_desc = rel_prod_desc.replace('"', '')
-                            rel_prod_desc = rel_prod_desc.replace("'", "")
-                            rel_result['rel_prod_desc'] = rel_prod_desc
+                                # rel prod page
+                                rel_result['rel_brand'] = self.sel.xpath('//h1[@class="product-brand"]/a/text()').extract_first()
+                                rel_result['rel_name'] = self.sel.xpath('//h2[@class="product-name"]/text()').extract_first()
+                                rel_prod_num = self.sel.xpath('//span[@class="product-sku"]/text()').extract_first()
+                                if rel_prod_num is None:
+                                    rel_prod_num = ''
+                                rel_result['rel_prod_num'] = rel_prod_num
+                                rel_prod_desc = self.sel.xpath('//p[@class="vspace1 product-description-text"]/span/text()').extract()
+                                rel_prod_desc = ' '.join(rel_prod_desc)
+                                rel_prod_desc = rel_prod_desc.replace('"', '')
+                                rel_prod_desc = rel_prod_desc.replace("'", "")
+                                rel_result['rel_prod_desc'] = rel_prod_desc
 
-                            color[c]['rel'].append(rel_result)
+                                color[c]['rel'].append(rel_result)
 
                         # write progress
                         __record_progress__(url)
