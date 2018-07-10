@@ -23,8 +23,8 @@ WHILE_TRIAL = 10
 # PROGRESS_DIR = './hyundai1_progress.txt'
 # RESULT_DIR = './hyundai1_result.txt'
 # CHROME_DRIVER = '/Users/jaeickbae/Documents/projects/Web_Crawl/selenium_drivers/chromedriver'
-PROGRESS_DIR = '/home/ubuntu/projects/crawling/progress/ssense_progress.txt'
-RESULT_DIR = '/home/ubuntu/projects/crawling/result/ssense_result.txt'
+PROGRESS_DIR = '/home/ubuntu/projects/crawling/progress/hyundai1_progress.txt'
+RESULT_DIR = '/home/ubuntu/projects/crawling/result/hyundai1_result.txt'
 CHROME_DRIVER = '/usr/local/bin/chromedriver'
 
 def __delay_time__():
