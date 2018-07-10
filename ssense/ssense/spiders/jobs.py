@@ -16,7 +16,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 DELAY_TIME = 1
 WHILE_TRIAL = 10
@@ -38,7 +38,7 @@ def __get_curr_time__():
 
 # write progress
 def __record_progress__(url):
-    print("\n\nWrite progress\n\n")
+    print("Write progress...")
     with open(PROGRESS_DIR, 'a') as f:
         f.write(url)
         f.write('\n')
@@ -108,9 +108,9 @@ class JobsSpider(scrapy.Spider):
             cat_list = [cat.strip() for cat in cat_list]
 
             for catidx, cat in enumerate(cat_list):
-                if catidx == 0:
-                    # jacket is done
-                    continue
+                # if catidx == 0:
+                #     # jacket is done
+                #     continue
                 try:
                     actions = chains(self.driver)
                     xpath = '//*[@id="category-list"]/li[{}]/ul/li[{}]/a'.format(target_idx, str(catidx+1))
@@ -125,6 +125,7 @@ class JobsSpider(scrapy.Spider):
                 self.sel = scrapy.Selector(text = self.driver.page_source)
                 print('\n\n category {} clicked\n\n'.format(cat))
 
+                curr_page_num = 1
                 while True:
                     # crawl items
                     prod_list = self.sel.xpath('//*[@id="wrap"]/div/div[1]/section/div[1]/div/figure/a/@href').extract()
@@ -197,22 +198,61 @@ class JobsSpider(scrapy.Spider):
                     self.sel = scrapy.Selector(text = self.driver.page_source)
 
                     # click next page
-                    page_lists = self.sel.xpath('//*[@id="wrap"]/div/div[1]/section/div[2]/div/div/nav/ul/li').extract()
-                    page_list_len = len(page_lists)
-                    isActive = self.sel.xpath('//*[@id="wrap"]/div/div[1]/section/div[2]/div/div/nav/ul/li[{}]/@class'.format(str(page_list_len-1)))
-                    if isActive == 'active':
-                        # last page
+                    page_list = self.sel.xpath('//div[@class="span16 text-center"]/nav/ul/li/a/text()').extract()
+                    next_page_num = curr_page_num + 1
+                    if str(next_page_num) not in page_list:
+                        # final page
+                        print("\n\nFinal Page\n\n")
                         break
-                    try:
-                        actions = chains(self.driver)
-                        xpath = '//*[@id="wrap"]/div/div[1]/section/div[2]/div/div/nav/ul/li[{}]/a'.format(str(page_list_len-1))
-                        page = self.driver.find_element_by_xpath(xpath)
-                        actions.move_to_element(page).perform()
-                        to_be_clicked = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, xpath)))
-                    except TimeoutException:
-                        print("\n\nTimeoutExceptoin while clicking next page")
-                        continue
-                    self.driver.execute_script('arguments[0].click()', to_be_clicked)
-                    __delay_time__()
-                    self.sel = scrapy.Selector(text = self.driver.page_source)
-                    print('\n\n next page clicked\n\n')
+                    else:
+                        # click next page
+                        prev_page_item = self.sel.xpath('//*[@id="wrap"]/div/div[1]/section/div[1]/div/figure/a/@href').extract_first()
+                        break_item = False
+                        while True:
+                            xpath = '//div[@class="span16 text-center"]/nav/ul/li/a[contains(text(), "{}")]'.format(str(next_page_num))
+                            try:
+                                element_visible = True
+                                actions = chains(self.driver)
+                                visible_cnt = 0
+                                while True:
+                                    try:
+                                        clickable = self.driver.find_element_by_xpath(xpath)
+                                        break
+                                    except NoSuchElementException:
+                                        try:
+                                            WebDriverWait(self.driver, 120).until(EC.presence_of_element_located((By.XPATH, xpath)))
+                                            continue
+                                        except TimeoutException:
+                                            print("\n\nElement Not Visible.\n\n")
+                                            if visible_cnt < 3:
+                                                visible_cnt += 1
+                                                continue
+                                            else:
+                                                element_visible = False
+                                                break
+                                if not element_visible:
+                                    break_item = True
+                                    print("\n\nMove on to Next Item...\n\n")
+                                    break
+                                actions.move_to_element(clickable).perform()
+                                to_be_clicked = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, xpath)))
+                            except TimeoutException:
+                                print("\n\nERROR WHILE CILCKING next page")
+                                continue
+                            while True:
+                                try:
+                                    self.driver.execute_script('arguments[0].click()', to_be_clicked)
+                                    break
+                                except StaleElementReferenceException:
+                                    to_be_clicked = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, xpath)))
+                                    continue
+                            __delay_time__()
+                            self.sel = scrapy.Selector(text = self.driver.page_source)
+                            curr_item = self.sel.xpath('//*[@id="wrap"]/div/div[1]/section/div[1]/div/figure/a/@href').extract_first()
+                            print('\n\n{}\n\n'.format(curr_item))
+                            if prev_page_item != curr_item:
+                                print("\n\nNEXT PAGE CLICKED: page now {}\n\n".format(str(next_page_num)))
+                                curr_page_num += 1
+                                break
+                        if break_item:
+                            break
